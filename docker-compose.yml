@@ -1,0 +1,53 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: registro-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Crea un archivo .env con MSSQL_SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - registro_network
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: registro-backend
+    environment:
+      PORT: 3000
+      DB_USER: sa
+      DB_PASSWORD: ${MSSQL_SA_PASSWORD:?Configura MSSQL_SA_PASSWORD}
+      DB_SERVER: sqlserver
+      DB_PORT: 1433
+      DB_NAME: RegistroEmpresa
+      DB_ENCRYPT: "false"
+      DB_TRUST_CERT: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - sqlserver
+    networks:
+      - registro_network
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: registro-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - registro_network
+    restart: unless-stopped
+
+networks:
+  registro_network:
+    driver: bridge
+
+volumes:
+  sqlserver_data:
